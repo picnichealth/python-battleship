@@ -1,0 +1,14 @@
+README.md
+setup.py
+battleship/__init__.py
+battleship/board.py
+battleship/bot.py
+battleship/game.py
+battleship/interface.py
+battleship/probmodel.py
+battleship.egg-info/PKG-INFO
+battleship.egg-info/SOURCES.txt
+battleship.egg-info/dependency_links.txt
+battleship.egg-info/top_level.txt
+test/__init__.py
+test/test_bot.py

@@ -1,7 +1,10 @@
 import os
 import numpy as np
 
+from IPython.display import clear_output
+
 from battleship.board import Point, Square, Board, OpponentBoard
+
 
 COLUMN_NAMES = 'abcdefghijklmnopqrstuvwxyz'
 
@@ -22,6 +25,11 @@ def print_boards(board: Board, opponent_board: OpponentBoard):
   # clear the terminal, if running on a unix-like system
   try:
     os.system('clear')
+  except:
+    pass
+
+  try:
+    clear_output()
   except:
     pass
 

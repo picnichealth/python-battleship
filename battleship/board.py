@@ -56,6 +56,13 @@ def all_sunk(board: Board) -> bool:
   return not np.any(board == Square.SHIP)
 
 
+def num_shots(board: Board) -> int:
+  '''
+  Return how many shots have been fired.
+  '''
+  return board.size - np.sum(opponent_view(board) == Square.UNKNOWN)
+
+
 def make_move(move: Point, board: Board) -> None:
    max_r, max_c = board.shape
    r, c = move

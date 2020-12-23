@@ -37,8 +37,7 @@ def _all_valid_placements(ship_size: int, board: Board) -> List[_Placement]:
   return placements
 
 
-
-def random_setup(ship_sizes: List[int], board: Board) -> None:
+def apply_random_setup(ship_sizes: List[int], board: Board) -> None:
   '''
   Randomly place all ships onto the board, or throw an error if they don't fit.
 
@@ -46,6 +45,8 @@ def random_setup(ship_sizes: List[int], board: Board) -> None:
 
   Rejection sampling would be simpler, but some board sizes will have no valid placement,
   and we should loop fail with an error instead of looping infinitely.
+
+  Note that this function mutates its `board` argument.
   '''
   for size in ship_sizes:
 
@@ -61,6 +62,35 @@ def random_setup(ship_sizes: List[int], board: Board) -> None:
     else:
       board[r, c:c+size] = Square.SHIP
 
+
+def generate_random_setup(ship_sizes: List[int], board: Board) -> Board:
+  '''
+  Randomly place all ships onto the board, or throw an error if they don't fit.
+
+  This method first enumerates all valid placements, and then chooses one randomly.
+
+  Rejection sampling would be simpler, but some board sizes will have no valid placement,
+  and we should loop fail with an error instead of looping infinitely.
+
+  Note that this function returns a new Board object.
+  '''
+  board = np.zeros_like(board)
+
+  for size in ship_sizes:
+
+    valid_placements = _all_valid_placements(size, board)
+
+    if not valid_placements:
+      raise AssertionError(f"Ship with size {size} doesn't fit on the board: {board}")
+
+    r, c, is_vertical = random.choice(valid_placements)
+
+    if is_vertical:
+      board[r:r+size, c] = Square.SHIP
+    else:
+      board[r, c:c+size] = Square.SHIP
+
+  return board
 
 
 def random_move(opponent_board: OpponentBoard) -> Point:
