@@ -42,9 +42,11 @@ def random_setup(ship_sizes: List[int], board: Board) -> None:
   '''
   Randomly place all ships onto the board, or throw an error if they don't fit.
 
-  This method first enumerates all valid placements, and then chooses one randomly.
+  This method first enumerates all valid placements, and then chooses one
+  randomly.
 
-  Rejection sampling would be simpler, but some board sizes will have no valid placement,
+  Rejection sampling would be simpler, but some board sizes will have
+  no valid placement,
   and we should loop fail with an error instead of looping infinitely.
   '''
   for size in ship_sizes:
@@ -62,7 +64,6 @@ def random_setup(ship_sizes: List[int], board: Board) -> None:
       board[r, c:c+size] = Square.SHIP
 
 
-
 def random_move(opponent_board: OpponentBoard) -> Point:
   '''
   Randomly choose an empty square to shoot at.
@@ -72,3 +73,4 @@ def random_move(opponent_board: OpponentBoard) -> Point:
   choice = random.randint(0, len(empty_rows) - 1)
 
   return Point(r=empty_rows[choice], c=empty_columns[choice])
+

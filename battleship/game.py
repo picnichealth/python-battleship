@@ -2,8 +2,10 @@ import sys
 from abc import ABC, abstractmethod
 from typing import Callable, List, Tuple, NamedTuple
 import numpy as np
+import random
 
-from battleship.board import Point, Board, OpponentBoard, Square, empty_board, opponent_view, all_sunk, make_move
+from battleship.board import (Point, Board, OpponentBoard, Square,
+                              empty_board, opponent_view, all_sunk, make_move)
 from battleship.bot import random_setup, random_move
 from battleship.interface import input_move, print_boards
 
@@ -26,7 +28,7 @@ class Player(ABC):
     raise NotImplementedError()
 
   @abstractmethod
-  def choose_move(self, opponent_board: OpponentBoard) -> Point:
+  def choose_move(self, opponent_board: OpponentBoard):
     ''' Returns the coordinates of the next shot. '''
     raise NotImplementedError()
 
@@ -50,9 +52,10 @@ class Human(Player):
   def display(self, board: Board, opponent_board: OpponentBoard) -> None:
     print_boards(board, opponent_board)
 
+
 class RandomBot(Player):
   '''
-  This starting impelementation uses a random setup, and moves randomly.
+  This starting implementation uses a random setup, and moves randomly.
   '''
   def setup(self, ship_sizes: List[int], board: Board) -> None:
     return random_setup(ship_sizes, board)
@@ -63,7 +66,6 @@ class RandomBot(Player):
   def display(self, board: Board, opponent_board: OpponentBoard) -> None:
     # don't display anything from the bot's perspective
     pass
-
 
 def play_one_game(player1: Player, player2: Player):
   player1_board = empty_board(ROWS, COLUMNS)
