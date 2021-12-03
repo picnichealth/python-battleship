@@ -8,39 +8,14 @@
 # After completing the destroy process in all four directions it returns to search mode.
 #
 #
-# For this implementation I've chosen to use a coroutine pattern.  While this pattern is slightly
-# obscure, it's a useful way of solving the problem of bot state.  The abstraction for a player
-# calls `choose_move` once per move the bot is supposed to play.  This makes maintaining state
-# between calls slightly more complicated since the logic is constantly being "stopped" and
-# "resumed".  The coroutine allows us to write the logic as if the bot were in control of the
-# entire process.
 import random
-from time import sleep
 from typing import List
 
 from battleship.board import Board, OpponentBoard, Point, Square
-from battleship.bot import random_move, random_setup
+from battleship.bot import random_setup
 from battleship.interface import print_boards
 from battleship.player import Player
 import numpy as np
-
-def point_range(start_point: Point, delta_r: int, delta_c: int, board: Board):
-    """
-    Starting at start_point, and moving (delta_r, delta_c) squares at each step,this generator
-    yields one point for every square until the edge of the board is detected or max_steps is
-    reached.
-
-    We do NOT yield start_point itself.
-    """
-    r, c = start_point.r, start_point.c
-    assert delta_r != 0 or delta_c != 0
-
-    while True:
-        r += delta_r
-        c += delta_c
-        if not (0 <= r < board.shape[0] and 0 <= c < board.shape[1]):
-            break
-        yield Point(r, c)
 
 
 def get_good_move(opponent_board: OpponentBoard):
@@ -73,50 +48,71 @@ def get_good_move(opponent_board: OpponentBoard):
     return Point(r, c)
 
 
+def get_square_safe(opponent_board: OpponentBoard, r: int, c: int) -> Square:
+    rows, cols = opponent_board.shape
+
+    if 0 <= r < rows and 0 <= c < cols:
+        return opponent_board[r,c]
+    else:
+        return Square.MISS
+
+
 class RulesBot(Player):
-    def __init__(self):
-        self.strategy_coro = self.gen_strategy_coroutine()
-
-        # Coroutine needs to have send(None) to execute the routine up-until the
-        # first yield.
-        self.strategy_coro.send(None)
-
     def setup(self, ship_sizes: List[int], board: Board) -> None:
         return random_setup(ship_sizes, board)
 
     def choose_move(self, opponent_board: OpponentBoard) -> Point:
-        return self.strategy_coro.send(opponent_board)
+        rows, cols = opponent_board.shape
+
+        # Loop through the board looking for any destroy mode moves!
+        for r in range(rows):
+            for c in range(cols):
+                if opponent_board[r, c] != Square.HIT:
+                    continue
+
+                # We're now looping through all HITS
+                # Let's get the state of our neighbors for convenience.
+                square_l = get_square_safe(opponent_board, r - 1, c)
+                square_r = get_square_safe(opponent_board, r + 1, c)
+                square_u = get_square_safe(opponent_board, r, c - 1)
+                square_d = get_square_safe(opponent_board, r, c + 1)
+
+                if not (square_l == Square.HIT or
+                        square_r == Square.HIT or
+                        square_u == Square.HIT or
+                        square_d == Square.HIT):
+                    # We have a single hit with no neighboring hits
+                    # This means we're at the beginning of the destroy phase, and we still need
+                    # to figure out the direction of the ship.
+
+                    if square_l == Square.UNKNOWN:
+                        return Point(r - 1, c)
+                    elif square_r == Square.UNKNOWN:
+                        return Point(r + 1, c)
+                    elif square_u == Square.UNKNOWN:
+                        return Point(r, c - 1)
+                    elif square_d == Square.UNKNOWN:
+                        return Point(r, c + 1)
+
+                # Assuming we don't have any size-1 ships, getting here means that we have
+                # two hits in a row somewhere on board, and we need to continue the pattern of
+                # hits.
+
+                if square_l == Square.HIT and square_r == Square.UNKNOWN:
+                    return Point(r + 1, c)
+
+                if square_r == Square.HIT and square_l == Square.UNKNOWN:
+                    return Point(r - 1, c)
+
+                if square_u == Square.HIT and square_d == Square.UNKNOWN:
+                    return Point(r, c + 1)
+
+                if square_d == Square.HIT and square_u == Square.UNKNOWN:
+                    return Point(r, c - 1)
+
+        # If we get here we have no destroy mode moves -- switch to search mode
+        return get_good_move(opponent_board)
 
     def display(self, board: Board, opponent_board: OpponentBoard) -> None:
         # don't display anything from the bot's perspective
         print_boards(board, opponent_board)
-
-    def gen_strategy_coroutine(self):
-        # Strategy coroutine.  This is the primary logic for our algorithm.
-        # When `choose_move` is called the opponent_board is sent to the coroutine.
-        # This coroutine then yields back the move it is making.
-        # While this obfuscates the control flow slightly, it makes the algorithm incredibly
-        # easy to read.  It's a tricky trade-off.
-
-        opponent_board = yield
-        move = None
-
-        while True:
-            # Phase 1:  Search mode
-            last_move_hit = False
-            while not last_move_hit:
-                move = get_good_move(opponent_board)
-                opponent_board = yield move
-                last_move_hit = opponent_board[move.r, move.c] == Square.HIT
-
-            # Phase 2: Destroy
-            for direction in (-1, 0), (1, 0), (0, -1), (0, 1):
-                for point in point_range(move, *direction, opponent_board):
-                    state = opponent_board[point.r, point.c]
-                    if state == Square.UNKNOWN:
-                        # We must explore this square.
-                        opponent_board = yield point
-                        state = opponent_board[point.r, point.c]
-
-                    if state == Square.MISS:
-                        break  # We found the end for this direction
