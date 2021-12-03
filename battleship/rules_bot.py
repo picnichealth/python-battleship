@@ -14,13 +14,15 @@
 # between calls slightly more complicated since the logic is constantly being "stopped" and
 # "resumed".  The coroutine allows us to write the logic as if the bot were in control of the
 # entire process.
+import random
+from time import sleep
 from typing import List
 
 from battleship.board import Board, OpponentBoard, Point, Square
 from battleship.bot import random_move, random_setup
 from battleship.interface import print_boards
 from battleship.player import Player
-
+import numpy as np
 
 def point_range(start_point: Point, delta_r: int, delta_c: int, board: Board):
     """
@@ -39,6 +41,36 @@ def point_range(start_point: Point, delta_r: int, delta_c: int, board: Board):
         if not (0 <= r < board.shape[0] and 0 <= c < board.shape[1]):
             break
         yield Point(r, c)
+
+
+def get_good_move(opponent_board: OpponentBoard):
+    rows, cols = opponent_board.shape
+
+    miss_count = np.zeros_like(opponent_board)
+
+    for r in range(rows):
+        for c in range(cols):
+            if opponent_board[r, c] != Square.UNKNOWN:
+                miss_count[r, c] = 100  # Remove this option from consideration
+                continue
+
+            miss = 0
+            if (r-1) >= 0 and opponent_board[r-1, c] == Square.MISS:
+                miss += 1
+
+            if (r+1) < rows and opponent_board[r+1, c] == Square.MISS:
+                miss += 1
+
+            if (c-1) >= 0 and opponent_board[r, c-1] == Square.MISS:
+                miss += 1
+
+            if (c+1) < cols and opponent_board[r, c+1] == Square.MISS:
+                miss += 1
+
+            miss_count[r, c] = miss
+    best_rows, best_cols = np.where(miss_count == miss_count.min())
+    r, c = random.choice(list(zip(best_rows, best_cols)))
+    return Point(r, c)
 
 
 class RulesBot(Player):
@@ -73,7 +105,7 @@ class RulesBot(Player):
             # Phase 1:  Search mode
             last_move_hit = False
             while not last_move_hit:
-                move = random_move(opponent_board)
+                move = get_good_move(opponent_board)
                 opponent_board = yield move
                 last_move_hit = opponent_board[move.r, move.c] == Square.HIT
 

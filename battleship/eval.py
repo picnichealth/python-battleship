@@ -4,7 +4,7 @@ from battleship.rules_bot import RulesBot
 from battleship.player import Player
 import numpy as np
 
-GAME_COUNT = 100
+GAME_COUNT = 200
 ROWS = 10
 COLUMNS = 10
 
