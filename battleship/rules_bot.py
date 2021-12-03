@@ -1,13 +1,25 @@
+# Implementation of a simple rules-based battleship bot.
+# The bot will start in search mode.  In this mode, it randomly shoots at the board until it hits
+# a ship.  After the first hit it should changes to destroy mode.
+#
+# In destroy mode, it loops through four directions: up, down, left, and right.
+# For each direction it will continue shooting until it gets a miss or runs out of room on the board.
+#
+# After completing the destroy process in all four directions it returns to search mode.
+#
+#
+# For this implementation I've chosen to use a coroutine pattern.  While this pattern is slightly
+# obscure, it's a useful way of solving the problem of bot state.  The abstraction for a player
+# calls `choose_move` once per move the bot is supposed to play.  This makes maintaining state
+# between calls slightly more complicated since the logic is constantly being "stopped" and
+# "resumed".  The coroutine allows us to write the logic as if the bot were in control of the
+# entire process.
 from typing import List
 
 from battleship.board import Board, OpponentBoard, Point, Square
 from battleship.bot import random_move, random_setup
 from battleship.interface import print_boards
 from battleship.player import Player
-
-
-def is_hit(opponent_board: OpponentBoard, move: Point) -> bool:
-    return opponent_board[move.r, move.c] == Square.HIT
 
 
 def point_range(start_point: Point, delta_r: int, delta_c: int, board: Board):
@@ -31,7 +43,7 @@ def point_range(start_point: Point, delta_r: int, delta_c: int, board: Board):
 
 class RulesBot(Player):
     def __init__(self):
-        self.strategy_coro = self.get_strategy_coroutine()
+        self.strategy_coro = self.gen_strategy_coroutine()
 
         # Coroutine needs to have send(None) to execute the routine up-until the
         # first yield.
@@ -47,8 +59,13 @@ class RulesBot(Player):
         # don't display anything from the bot's perspective
         print_boards(board, opponent_board)
 
-    def get_strategy_coroutine(self):
-        # Strategy coroutine.
+    def gen_strategy_coroutine(self):
+        # Strategy coroutine.  This is the primary logic for our algorithm.
+        # When `choose_move` is called the opponent_board is sent to the coroutine.
+        # This coroutine then yields back the move it is making.
+        # While this obfuscates the control flow slightly, it makes the algorithm incredibly
+        # easy to read.  It's a tricky trade-off.
+
         opponent_board = yield
         move = None
 
@@ -58,7 +75,7 @@ class RulesBot(Player):
             while not last_move_hit:
                 move = random_move(opponent_board)
                 opponent_board = yield move
-                last_move_hit = is_hit(opponent_board, move)
+                last_move_hit = opponent_board[move.r, move.c] == Square.HIT
 
             # Phase 2: Destroy
             for direction in (-1, 0), (1, 0), (0, -1), (0, 1):
