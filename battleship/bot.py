@@ -1,9 +1,10 @@
 import random
-from typing import List, Tuple, NamedTuple
+from typing import List, NamedTuple
 
 import numpy as np
 
 from battleship.board import Board, OpponentBoard, Point, Square
+from battleship.player import Player
 
 
 class _Placement(NamedTuple):
@@ -71,3 +72,19 @@ def random_move(opponent_board: OpponentBoard) -> Point:
     choice = random.randint(0, len(empty_rows) - 1)
 
     return Point(r=empty_rows[choice], c=empty_columns[choice])
+
+
+class RandomBot(Player):
+    """
+    This starting impelementation uses a random setup, and moves randomly.
+    """
+
+    def setup(self, ship_sizes: List[int], board: Board) -> None:
+        return random_setup(ship_sizes, board)
+
+    def choose_move(self, opponent_board: OpponentBoard) -> Point:
+        return random_move(opponent_board)
+
+    def display(self, board: Board, opponent_board: OpponentBoard) -> None:
+        # don't display anything from the bot's perspective
+        pass

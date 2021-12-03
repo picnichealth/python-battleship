@@ -1,7 +1,10 @@
 import os
 import numpy as np
+from typing import List
 
+from battleship.bot import random_setup
 from battleship.board import Point, Square, Board, OpponentBoard
+from battleship.player import Player
 
 COLUMN_NAMES = "abcdefghijklmnopqrstuvwxyz"
 
@@ -93,3 +96,19 @@ def input_move(opponent_board: OpponentBoard) -> Point:
         except:
             print("Input not recognized.")
             pass
+
+
+class Human(Player):
+    """
+    This starting implementation uses a random setup, and moves based
+    on user input.
+    """
+
+    def setup(self, ship_sizes: List[int], board: Board) -> None:
+        return random_setup(ship_sizes, board)
+
+    def choose_move(self, opponent_board: OpponentBoard) -> Point:
+        return input_move(opponent_board)
+
+    def display(self, board: Board, opponent_board: OpponentBoard) -> None:
+        print_boards(board, opponent_board)
