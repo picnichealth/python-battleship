@@ -1,6 +1,7 @@
 from battleship.board import empty_board, opponent_view, all_sunk, make_move
 from battleship.bot import RandomBot
 from battleship.interface import Human
+from battleship.ml_agent.agent import MLBot
 from battleship.rules_bot import RulesBot
 from battleship.player import Player
 
@@ -45,4 +46,4 @@ if __name__ == "__main__":
     """
     This starting implementation hardcodes player 1 as human and player 2 as a bot.
     """
-    play_one_game(RulesBot(), RandomBot())
+    play_one_game(RulesBot(), MLBot())
