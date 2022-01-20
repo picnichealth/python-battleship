@@ -1,13 +1,18 @@
+import sys
+
 from torch import optim, nn
 from torch.nn import functional as F
-
-from battleship.board import empty_board
+from battleship.board import empty_board, Square
 from battleship.bot import random_setup
 from tqdm import tqdm
 import torch
 import random
 from battleship.ml_agent.model import model
 
+
+# These are redefined here (also defined in game.py)
+# The reason is that game.py imports agent.py, and agent.py loads the weights that we generate
+# in this script.  So to avoid the circular dependency, we redefine the values here.
 ROWS = 10
 COLUMNS = 10
 
@@ -20,6 +25,9 @@ SHIP_SIZES = [
 ]
 
 def make_examples():
+    # Generate 1000 random boards.
+    # For each board we'll create a "board input", which represent our knowledge of an opponent
+    # board and a "board output", which represents which cells are occupied.
     boards_input = torch.zeros((1000, 10, 10), dtype=torch.float32)
     boards_output = torch.zeros((1000, 10, 10), dtype=torch.float32)
 
@@ -48,15 +56,14 @@ def make_examples():
         #         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         #         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
-        # Store the board as the output
-        # This is what our model is going to try to reconstruct
+        # Store the board as the output -- This is what our model is going to try to reconstruct.
         boards_output[i] = board
 
-        # Now that we have our output, lets construct
-        # the representation we'll use as the models input.
+        # Now that we have our output, lets construct the representation we'll use as the models
+        # input.
 
-        # The input will represent our knowledge of the board,
-        # which is determined by how many shots we've taken.
+        # The input will represent our knowledge of the board, which is determined by how many
+        # shots we've taken.
 
         # Choose how many shots we want for this example
         # we'll use between 0 and 99 shots
@@ -71,9 +78,19 @@ def make_examples():
         # 1 represents a hit
         # -1 represents unknown
         # This is the representation we'll feed the neural net
-        board_state = torch.where(shot_pattern,
-                board,
-                -1 * torch.ones_like(shot_pattern))
+        board_state = torch.zeros_like(board)
+        for r in range(10):
+            for c in range(10):
+                if shot_pattern[r, c]:
+                    # If we shot at the board in this square, we will know
+                    # the board state for this square
+                    if board[r, c] == Square.HIT:
+                        board_state[r, c] = 1
+                    else:
+                        board_state[r, c] = 0
+                else:
+                    # If we didn't shoot at the board, we don't know the state
+                    board_state[r, c] = -1
 
         # Example board state:
         # tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -91,41 +108,52 @@ def make_examples():
     return boards_input, boards_output
 
 
+# Parse command options
+if len(sys.argv) != 3:
+    print("""
+    Usage: python3 -m battleship.ml_agent.train <total epochs> <learning rate>
+    """)
+    exit(0)
+
+epoch_cnt = int(sys.argv[1])
+lr = float(sys.argv[2])
+
 print("Generating training data")
 train_boards_input, train_boards_output = make_examples()
+
 print("Generating eval data")
 eval_boards_input, eval_boards_output = make_examples()
 
 
-def train(model):
+def train():
     # Generate an optimizer
-    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     # Train the model for 100 epochs
-    for i in range(500):
+    for i in range(epoch_cnt):
         optimizer.zero_grad()
 
         # Pass the examples through the model
         pred_boards_output = model(train_boards_input)
 
-        # Calculate the RMS error between the prediction and truth
+        # Calculate the Error between the prediction and truth
+        # TODO: Should this be MSE loss or cross entropy?
         #loss = F.mse_loss(train_boards_output, pred_boards_output, reduction='mean')
         loss = F.binary_cross_entropy_with_logits(pred_boards_output, train_boards_output, reduction='mean')
 
         # Backprop
         loss.backward()
-
         optimizer.step()
 
-        if i % 10 == 0:
+        if i % 100 == 0:
             # Calculate evaluation loss
             with torch.no_grad():
                 eval_loss = F.binary_cross_entropy_with_logits(model(eval_boards_input), eval_boards_output, reduction='mean')
 
-            print(f"Step={i} Train Loss={loss.item():.3f} Eval Loss = {eval_loss.item():.3f}")
+            print(f"Epoch={i} Train Loss={loss.item():.3f} Eval Loss = {eval_loss.item():.3f}")
 
 
-train(model)
+train()
 
 print("Saving model")
 torch.save(model.state_dict(), "model.pt")
