@@ -23,13 +23,13 @@ class MLBot(Player):
         model_input = get_model_input(opponent_board)
         model_input = model_input.unsqueeze(0) # Add batch dim of 1
 
-        pred_occupancy = model(model_input)[0]
+        pred_occupancy = model(model_input.float())[0]
         # Pred occupancy now contains the models prediction of which squares
         # are occupied
 
         # Let's mask out all squares that are not unknown
         pred_occupancy = torch.where(
-            opponent_board == Square.UNKNOWN,
+            model_input[0] == 2,
             torch.sigmoid(pred_occupancy),
             torch.zeros_like(pred_occupancy)
         )

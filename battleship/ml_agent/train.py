@@ -24,23 +24,27 @@ SHIP_SIZES = [
     2,  # destroyer
 ]
 
-def make_examples():
-    # Generate 1000 random boards.
+def make_examples(board_cnt: int):
+    # Generate random boards.
+
     # For each board we'll create a "board input", which represent our knowledge of an opponent
     # board and a "board output", which represents which cells are occupied.
-    boards_input = torch.zeros((1000, 10, 10), dtype=torch.float32)
-    boards_output = torch.zeros((1000, 10, 10), dtype=torch.float32)
+    boards_input = torch.zeros((board_cnt, ROWS, COLUMNS), dtype=torch.float32)
+    boards_output = torch.zeros((board_cnt, ROWS, COLUMNS), dtype=torch.float32)
 
     #
     # Generate 1000 random boards
     #
-    for i in tqdm(range(1000)):
+    for i in tqdm(range(board_cnt)):
         # Generate a random board layout
         board = empty_board(ROWS, COLUMNS)
+
+        # This random_setup step is slow because it has to return a random _valid_
+        # placement of ships with no overlap.
         random_setup(SHIP_SIZES, board)
 
         # Convert board to torch tensor from numpy.
-        # All of this agents code will use torch.
+        # All of this agent's code will use torch.
         board = torch.tensor(board)
 
         # This board represents which grid squares have a ship
@@ -74,9 +78,10 @@ def make_examples():
 
         # Create a representation what we know about the board state
         # We'll use a 10x10 array, where
-        # 0 represents a miss
-        # 1 represents a hit
-        # -1 represents unknown
+        # 0 represents a ship
+        # 1 represents a miss
+        # 2 represents unknown
+
         # This is the representation we'll feed the neural net
         board_state = torch.zeros_like(board)
         for r in range(10):
@@ -84,53 +89,49 @@ def make_examples():
                 if shot_pattern[r, c]:
                     # If we shot at the board in this square, we will know
                     # the board state for this square
-                    if board[r, c] == Square.HIT:
-                        board_state[r, c] = 1
-                    else:
+                    if board[r, c] == Square.SHIP:
                         board_state[r, c] = 0
+                    else:
+                        board_state[r, c] = 1
                 else:
                     # If we didn't shoot at the board, we don't know the state
-                    board_state[r, c] = -1
+                    board_state[r, c] = 2
 
         # Example board state:
-        # tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        #         [0., -1., 1., 1., -1., 1., 1., 0., 0., -1.],
-        #         [0., 1., 0., 0., -1., 0., 0., 0., 0., 0.],
-        #         [0., -1., 0., 0., 1., 0., 0., 0., 0., 0.],
-        #         [0., 1., 0., -1., 1., 0., 0., 0., 0., 0.],
-        #         [0., 1., 0., -1., 0., 0., -1., 0., -1., 0.],
-        #         [-1., 0., -1., 0., 0., 0., 0., 0., 0., 0.],
-        #         [0., -1., 0., 1., 1., 1., 0., 0., 0., 0.],
-        #         [-1., 0., -1., 0., -1., 0., 0., -1., -1., 0.],
-        #         [0., 0., -1., 0., 0., 1., 1., 0., 0., 0.]])
+        # tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        #         [1, 1, 0, 0, 0, 0, 1, 1, 1, 1],
+        #         [2, 0, 1, 1, 2, 1, 1, 2, 1, 1],
+        #         [1, 2, 1, 1, 1, 1, 1, 1, 2, 1],
+        #         [1, 0, 2, 2, 1, 0, 0, 1, 2, 1],
+        #         [2, 0, 2, 1, 1, 1, 0, 0, 0, 1],
+        #         [1, 0, 1, 1, 0, 2, 0, 1, 1, 1],
+        #         [1, 2, 1, 2, 1, 1, 2, 1, 1, 1],
+        #         [1, 1, 1, 2, 2, 1, 1, 1, 1, 1]])
         boards_input[i] = board_state
 
     return boards_input, boards_output
 
 
-# Parse command options
-if len(sys.argv) != 3:
-    print("""
-    Usage: python3 -m battleship.ml_agent.train <total epochs> <learning rate>
-    """)
-    exit(0)
-
-epoch_cnt = int(sys.argv[1])
-lr = float(sys.argv[2])
-
-print("Generating training data")
-train_boards_input, train_boards_output = make_examples()
-
-print("Generating eval data")
-eval_boards_input, eval_boards_output = make_examples()
-
-
 def train():
-    # Generate an optimizer
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    num_epochs = 500
 
-    # Train the model for 100 epochs
-    for i in range(epoch_cnt):
+    # We don't generate more boards because this step is slow, and memory usage
+    # grows too large in our training loop.
+    train_boards = 4000
+    eval_boards = 100
+
+    print("Generating training data")
+    train_boards_input, train_boards_output = make_examples(train_boards)
+
+    print("Generating eval data")
+    eval_boards_input, eval_boards_output = make_examples(eval_boards)
+
+    # Generate an optimizer
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Train the model for num_epochs
+    for i in range(num_epochs):
         optimizer.zero_grad()
 
         # Pass the examples through the model
@@ -152,9 +153,10 @@ def train():
 
             print(f"Epoch={i} Train Loss={loss.item():.3f} Eval Loss = {eval_loss.item():.3f}")
 
+    print("Saving model")
+    torch.save(model.state_dict(), "model.pt")
 
-train()
 
-print("Saving model")
-torch.save(model.state_dict(), "model.pt")
+if __name__ == "__main__":
+        train()
 
