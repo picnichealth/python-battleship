@@ -1,5 +1,6 @@
 from battleship.board import empty_board, opponent_view, all_sunk, make_move
 from battleship.bot import RandomBot, random_setup
+from battleship.ml_agent.agent import MLBot
 from battleship.rules_bot import RulesBot
 from battleship.player import Player
 import numpy as np
@@ -35,6 +36,6 @@ def eval_bot(bot: Player):
 
 
 if __name__ == "__main__":
-    for bot_name, bot in [('Random', RandomBot), ('RulesBot', RulesBot)]:
+    for bot_name, bot in [('Random', RandomBot), ('ML', MLBot), ('RulesBot', RulesBot)]:
         print(f"Average number of turns to sink random board using {bot_name}: {eval_bot(bot)}")
 
