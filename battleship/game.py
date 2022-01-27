@@ -1,7 +1,7 @@
 from battleship.board import empty_board, opponent_view, all_sunk, make_move
 from battleship.bot import RandomBot
-from battleship.rules_bot import RulesBot
 from battleship.interface import Human
+from battleship.rules_bot import RulesBot
 from battleship.player import Player
 
 ROWS = 10
