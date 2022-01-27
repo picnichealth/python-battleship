@@ -114,7 +114,7 @@ def make_examples(board_cnt: int):
 
 
 def train():
-    num_epochs = 500
+    num_epochs = 1000
 
     # We don't generate more boards because this step is slow, and memory usage
     # grows too large in our training loop.
