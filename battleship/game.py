@@ -1,6 +1,5 @@
 from battleship.board import empty_board, opponent_view, all_sunk, make_move
 from battleship.bot import RandomBot
-from battleship.interface import Human
 from battleship.rules_bot import RulesBot
 from battleship.player import Player
 
@@ -41,8 +40,12 @@ def play_one_game(player1: Player, player2: Player):
             return
 
 
-if __name__ == "__main__":
+def main():
     """
     This starting implementation hardcodes player 1 as human and player 2 as a bot.
     """
     play_one_game(RulesBot(), RandomBot())
+
+
+if __name__ == "__main__":
+    main()

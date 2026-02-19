@@ -1,0 +1,10 @@
+{
+	"name": "Battleship Interview",
+	"build": { "dockerfile": "Dockerfile" },
+	"postCreateCommand": "bash .devcontainer/on-create.sh",
+	"customizations": {
+		"vscode": {
+			"extensions": ["ms-python.python", "ms-vsliveshare.vsliveshare"]
+		}
+	}
+}

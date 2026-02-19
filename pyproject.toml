@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "battleship"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+]
+
+[project.scripts]
+battleship = "battleship.game:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["battleship"]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "mypy",
+]
