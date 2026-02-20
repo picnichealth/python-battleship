@@ -2,6 +2,10 @@
 	"name": "Battleship Interview",
 	"build": { "dockerfile": "Dockerfile" },
 	"postCreateCommand": "bash .devcontainer/on-create.sh",
+	"remoteEnv": {
+		"ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+		"ANTHROPIC_AUTH_TOKEN": "dummy"
+	},
 	"customizations": {
 		"vscode": {
 			"extensions": ["ms-python.python", "ms-vsliveshare.vsliveshare"]
