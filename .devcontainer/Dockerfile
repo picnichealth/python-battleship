@@ -28,5 +28,5 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
 
 # Install Claude Code as vscode user (Codespaces run as vscode, not root)
 USER vscode
-RUN curl -fsSL https://claude.ai/install.sh | bash
+RUN ANTHROPIC_AUTH_TOKEN='dummy' curl -fsSL https://claude.ai/install.sh | bash
 USER root
